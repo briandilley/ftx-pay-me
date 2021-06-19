@@ -1,7 +1,8 @@
 
 #include "WiFiController.h"
 
-WiFiController::WiFiController(std::string name, std::string password, int portalTimeout) {
+WiFiController::WiFiController(std::string name, std::string password, int portalTimeout) :
+      wifiManager() {
     this->name = name;
     this->password = password;
     this->portalTimeout = portalTimeout;
@@ -15,7 +16,7 @@ IPAddress WiFiController::getIPAddress() {
     return WiFi.localIP();
 }
 
-void WiFiController::setupWiFi() {
+void WiFiController::setup() {
 
   // wifiManager.resetSettings();  // this will delete all credentials
   wifiManager.setDebugOutput(false);

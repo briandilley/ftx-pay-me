@@ -1,4 +1,7 @@
-   
+
+#ifndef WIFI_CONTROLLER_H
+#define WIFI_CONTROLLER_H
+
 #include <WiFiManager.h>
 #include <string>
 
@@ -7,7 +10,8 @@ public:
     WiFiController(std::string name, std::string password, int portalTimeout);
     bool isConnected();
     IPAddress getIPAddress();
-    void setupWiFi();
+    
+    void setup();
 
 private:
     WiFiManager wifiManager;
@@ -16,3 +20,5 @@ private:
     int portalTimeout;
 
 };
+
+#endif // WIFI_CONTROLLER_H
