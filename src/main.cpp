@@ -1,8 +1,6 @@
 /* ------------------------------------------------- */
-// ESP8266 only - as WiFiManager is not working (yet) on ESP32
-
-#include "ESPTelnet.h"          
-#include "WiFiManager.h"
+#include "ESPTelnet.h"
+#include "WiFiController.h"
 
 /* ------------------------------------------------- */
 
@@ -17,21 +15,15 @@
 /* ------------------------------------------------- */
 
 ESPTelnet telnet;
-IPAddress ip;
-WiFiManager wifiManager;
+WiFiController wifiController(AP_NAME, AP_PASSWORD, PORTAL_TIMEOUT);
 
 void setupSerial(long speed, String msg);
-bool isConnected();
-void useWiFiManager();
 void errorMsg(String error, bool restart);
 void setupTelnet();
 void onTelnetConnect(String ip);
 void onTelnetDisconnect(String ip);
 void onTelnetReconnect(String ip);
 void onTelnetConnectionAttempt(String ip);
-
-
-
 
 /* ------------------------------------------------- */
 
@@ -43,35 +35,6 @@ void setupSerial(long speed, String msg = "") {
   Serial.println();
   Serial.println();
   if (msg != "") Serial.println(msg);
-}
-
-/* ------------------------------------------------- */
-
-bool isConnected() {
-  return (WiFi.status() == WL_CONNECTED);
-}
-
-/* ------------------------------------------------- */
-
-void useWiFiManager() {
-  // wifiManager.resetSettings();  // this will delete all credentials
-  wifiManager.setDebugOutput(false);
-  wifiManager.setConfigPortalTimeout(PORTAL_TIMEOUT);
-  wifiManager.setAPCallback([] (WiFiManager *myWiFiManager) {
-    Serial.println("- No known wifi found");
-    Serial.print("- Starting AP: ");
-    //Serial.println(myWiFiManager->getConfigPortalSSID());
-    Serial.println(WiFi.softAPIP());
-  });
-  // enable autoconnect
-  if (!(AP_PASSWORD == "" ? 
-    wifiManager.autoConnect(AP_NAME) : 
-    wifiManager.autoConnect(AP_NAME, AP_PASSWORD))
-   ) {
-    Serial.println("- Failed to connect and hit timeout");
-    ESP.reset();
-    delay(1000); 
-  }
 }
 
 /* ------------------------------------------------- */
@@ -153,12 +116,11 @@ void setup() {
   setupSerial(SERIAL_SPEED, "Telnet Test");
   
   Serial.print("- Wifi: ");
-  useWiFiManager();
+  wifiController.setupWiFi();
 
-  if (isConnected()) {
-    ip = WiFi.localIP();
+  if (wifiController.isConnected()) {
     Serial.print(" ");
-    Serial.println(ip);
+    Serial.println(wifiController.getIPAddress());
     setupTelnet();
   } else {
     Serial.println();    
