@@ -37,8 +37,11 @@ void WebConfigurationPortal::setup() {
         response.flush();
 
         settings->clear();
-        ESP.eraseConfig();
+        settings->loadDefaults();
+        settings->save();
+        WiFi.disconnect(true);
         ESP.reset();
+        delay(500);
     });
 
     app.post("/save", [] (Request &request, Response &response) {
@@ -68,6 +71,9 @@ void WebConfigurationPortal::setup() {
 
             } else if (std::string("scrollSpeed") == name) {
                 settings->get()->scrollSpeed = min(200, max(20, std::stoi(value)));
+
+            } else if (std::string("dataUpdateFrequencySeconds") == name) {
+                settings->get()->dataUpdateFrequencySeconds = min(10, max(60, std::stoi(value)));
             }
         }
 
@@ -139,6 +145,10 @@ const std::string HTML_FORM(FtxPayMeSettings* settings) {
                 <label>Scroll speed</label><br>
                 <input type="range" name="scrollSpeed" value="{scrollSpeed}" min="20" max="200">
             </p>
+            <p>
+                <label>Data update frequency (seconds)</label><br>
+                <input type="number" name="dataUpdateFrequencySeconds" value="{dataUpdateFrequencySeconds}">
+            </p>
             <button type="submit">Save</button> <button onclick="resetDevice(); return false;">Reset</button>
         </form>
     );
@@ -147,5 +157,6 @@ const std::string HTML_FORM(FtxPayMeSettings* settings) {
     replaceAll(ret, "{eth}", settings->eth ? "checked" : "");
     replaceAll(ret, "{msg}", std::string(settings->message));
     replaceAll(ret, "{scrollSpeed}", std::to_string(settings->scrollSpeed));
+    replaceAll(ret, "{dataUpdateFrequencySeconds}", std::to_string(settings->dataUpdateFrequencySeconds));
     return ret;
 }

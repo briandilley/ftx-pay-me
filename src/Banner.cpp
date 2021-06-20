@@ -19,8 +19,8 @@ void Banner::setup() {
     hw.displayScroll(buffer, PA_LEFT, PA_SCROLL_LEFT, scrollSpeed);
 }
 
-void Banner::setMessage(std::string message) {
-    memcpy(pendingBuffer, message.c_str(), min((int)message.length(), bufferSize));
+void Banner::setMessage(const char* message) {
+    memcpy(pendingBuffer, message, min((int)strlen(message), bufferSize));
 }
 
 bool Banner::loop() {

@@ -1,20 +1,14 @@
 
 #include "Settings.h"
 
-const char* DEFAULT_MESSAGE = "(___)__)========jjjj===D ~  ~   ~";
+const char* DEFAULT_MESSAGE = "(___)__)===jjjj===D ~  ~   ~";
 
 Settings* Settings::instance = nullptr;
 
 Settings::Settings() {
     load();
     if (settings.valid != 'v') {
-        settings.fttTokens = 0;
-        settings.btc = true;
-        settings.eth = true;
-        settings.scrollSpeed = 40;
-        settings.configured = false;
-        settings.valid = 'v';
-        strcpy(settings.message, DEFAULT_MESSAGE);
+        loadDefaults();
         save();
     }
 }
@@ -34,6 +28,18 @@ bool Settings::load() {
     } else {
         return false;
     }
+}
+
+void Settings::loadDefaults() {
+    settings.valid = 'v';
+    settings.fttTokens = 0;
+    settings.btc = true;
+    settings.eth = true;
+    settings.scrollSpeed = 40;
+    settings.configured = false;
+    settings.valid = 'v';
+    settings.dataUpdateFrequencySeconds = 10;
+    strcpy(settings.message, DEFAULT_MESSAGE);
 }
 
 void Settings::save() {

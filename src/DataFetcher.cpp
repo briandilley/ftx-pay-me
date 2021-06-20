@@ -2,39 +2,147 @@
 #include "DataFetcher.h"
 
 DataFetcher::DataFetcher() :
-    ethernet(),
-    http(ethernet),
+    currentMessage(MSG_FTT_PRICE),
+    lastUpdatedMessage(MSG_LAST),
     lastUpdate(0),
-    message("Loading...") {
+    messages({"Loading FTT", "Loading FTT Payout", "Loading BTC", "Loading ETH", "Loading Message"}),
+    json() {
 
 }
 
 void DataFetcher::setup() {
-
+   
 }
 
-bool DataFetcher::loop() {
-    time_t current = now();
-    time_t elapsed = current - lastUpdate;
-    if (elapsed < 30) {
-        message = std::to_string(elapsed);
-        return true;
+const char* DataFetcher::getMessage() {
+    return messages[currentMessage].c_str();
+}
+
+void DataFetcher::maybeFetchData(bool forceLoad) {
+
+    Settings* settings = Settings::getInstance();
+    messages[MSG_PERSONALIZED_MESSAGE] = settings->get()->message;
+    bool btcEnabled = settings->get()->btc;
+    bool ethEnabled = settings->get()->eth;
+    bool customEnabled = messages[MSG_PERSONALIZED_MESSAGE].length() > 0;
+
+    // cycle messages
+    currentMessage = currentMessage + 1;
+    if (currentMessage == MSG_BTC_PRICE && !btcEnabled) {
+        currentMessage = currentMessage + 1;
+    }
+    if (currentMessage == MSG_ETH_PRICE && !ethEnabled) {
+        currentMessage = currentMessage + 1;
+    }
+    if (currentMessage == MSG_PERSONALIZED_MESSAGE && !customEnabled) {
+        currentMessage = currentMessage + 1;
+    }
+    if (currentMessage > MSG_LAST) {
+        currentMessage = MSG_FIRST;
+    }
+
+    // only fetch data if enough time has passed
+    unsigned long current = millis();
+    unsigned long elapsed = current - lastUpdate;
+    if (!forceLoad
+            && (elapsed < (10 * 1000))
+            && !messages[currentMessage].startsWith("Loading")) {
+        return;
     }
     lastUpdate = current;
 
-    if (http.get("ftx.com", "/api/markets/FTT/USD/candles/last?resolution=300") < 0) {
-        message = "Unable to fetch data";
-        return true;
+    // cycle updates
+    if (messages[currentMessage].startsWith("Loading")) {
+        lastUpdatedMessage = currentMessage;
 
-    } else if (http.responseStatusCode() != 200) {
-        message = std::string("Non 200 response code: ") + std::to_string(http.responseStatusCode());
-        return true;
+    } else {
+        lastUpdatedMessage = lastUpdatedMessage + 1;
+        if (lastUpdatedMessage == MSG_FTT_PAYOUT) {
+            lastUpdatedMessage = lastUpdatedMessage + 1;
+        }
+        if (lastUpdatedMessage == MSG_BTC_PRICE && !btcEnabled) {
+            lastUpdatedMessage = lastUpdatedMessage + 1;
+        }
+        if (lastUpdatedMessage == MSG_ETH_PRICE && !ethEnabled) {
+            lastUpdatedMessage = lastUpdatedMessage + 1;
+        }
+        if (lastUpdatedMessage == MSG_PERSONALIZED_MESSAGE && !customEnabled) {
+            lastUpdatedMessage = lastUpdatedMessage + 1;
+        }
+        if (lastUpdatedMessage > MSG_LAST) {
+            lastUpdatedMessage = MSG_FIRST;
+        }
     }
 
+    // FTT / Payout
+    if (lastUpdatedMessage == MSG_FTT_PRICE) {
+        double price = requestJson("FTT");
+        if (price == -1) {
+            messages[MSG_FTT_PRICE] = "Problem loading FTT price";
+            return;
+        }
+        messages[MSG_FTT_PRICE] = "FTT: $" + String(price, 3);
+        messages[MSG_FTT_PAYOUT] = "Your payout is: $" + String(settings->get()->fttTokens * price, 2);
 
-    return true;
+    // BTC
+    } else if (lastUpdatedMessage == MSG_BTC_PRICE) {
+        double price = requestJson("BTC");
+        if (price == -1) {
+            messages[MSG_BTC_PRICE] = "Problem loading BTC price";
+            return;
+        }
+        messages[MSG_BTC_PRICE] = "BTC: $" + String(price, 3);
+
+    // ETH
+    } else if (lastUpdatedMessage == MSG_ETH_PRICE) {
+        double price = requestJson("ETH");
+        if (price == -1) {
+            messages[MSG_ETH_PRICE] = "Problem loading ETH price";
+            return;
+        }
+        messages[MSG_ETH_PRICE] = "ETH: $" + String(price, 3);
+
+    }
+
+    return;
 }
 
-std::string& DataFetcher::getMessage() {
-    return message;
-}
+ double DataFetcher::requestJson(std::string coin) {
+
+    WiFiClientSecure client;
+    client.setInsecure();
+
+    if (!client.connect("ftx.com", 443)) {
+        return -1;
+    }
+
+    client.println((std::string("GET /api/markets/") + coin + "/USD/candles/last?resolution=300 HTTP/1.0").c_str());
+    client.println("Host: ftx.com");
+    client.println("Connection: close");
+    client.println();
+
+    // read headers
+    while (client.connected()) {
+      String line = client.readStringUntil('\n');
+      if (line == "\r") {
+        break;
+      }
+    }
+
+    if (!client.connected()) {
+        return -1;
+    }
+
+    // read body
+    DeserializationError res = deserializeJson(json, client);
+    if (res) {
+        return -1;
+    }
+
+    double price = json["result"]["close"];
+
+    // we're done
+    client.stop();
+    return price;
+ }
+

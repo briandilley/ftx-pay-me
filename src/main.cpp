@@ -22,15 +22,19 @@ void setup() {
   banner.setup();
   banner.setMessage("FTX PAY ME");
   dataFetcher.setup();
+  Serial.begin(115200);
+  delay(1000);
 }
 
 void loop() {
 
-  banner.loop();
+  bool doneAnimating = banner.loop();
 
   // wifi not setup yet
   if (!wifiController.isConnected()) {
-    banner.setMessage(std::string("Connect to SSID ") + AP_NAME + " and configure wireless connection");
+    if (doneAnimating) {
+      banner.setMessage((std::string("Connect to SSID ") + AP_NAME + " and configure wireless connection").c_str());
+    }
     return;
   }
 
@@ -42,13 +46,21 @@ void loop() {
 
   // if we haven't ever been configured, prompt for that now
   if (!settings->get()->configured) {
-    banner.setMessage("Go to http://... and configure me ");
+    if (doneAnimating) {
+      IPAddress addr = wifiController.getIPAddress();
+      String message = String("go to http://") + addr.toString() + " and configure me";
+      banner.setMessage(message.c_str());
+    }
     return;
   }
 
   // update the banner
   banner.setScrollSpeed(settings->get()->scrollSpeed);
-  if (dataFetcher.loop()) {
+
+  // potentially load more data
+  if (doneAnimating) {
+    dataFetcher.maybeFetchData(false);
     banner.setMessage(dataFetcher.getMessage());
   }
+
 }

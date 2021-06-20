@@ -12,6 +12,7 @@ struct FtxPayMeSettings {
     int scrollSpeed;
     char message[128];
     bool configured;
+    unsigned int dataUpdateFrequencySeconds;
 };
 
 class Settings {
@@ -23,6 +24,7 @@ public:
 
     void save();
     bool load();
+    void loadDefaults();
     void clear();
 
 private:

@@ -22,10 +22,7 @@ void WiFiController::setup() {
   wifiManager.setDebugOutput(false);
   wifiManager.setConfigPortalTimeout(this->portalTimeout);
   wifiManager.setAPCallback([] (WiFiManager *myWiFiManager) {
-    Serial.println("- No known wifi found");
-    Serial.print("- Starting AP: ");
-    //Serial.println(myWiFiManager->getConfigPortalSSID());
-    Serial.println(WiFi.softAPIP());
+    
   });
 
   // enable autoconnect
@@ -33,7 +30,6 @@ void WiFiController::setup() {
     wifiManager.autoConnect(this->name.c_str()) : 
     wifiManager.autoConnect(this->name.c_str(), this->password.c_str()))
    ) {
-    Serial.println("- Failed to connect and hit timeout");
     ESP.reset();
     delay(1000); 
   }

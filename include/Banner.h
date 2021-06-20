@@ -15,7 +15,7 @@ public:
     bool loop();
 
     void setScrollSpeed(int speed);
-    void setMessage(std::string message);
+    void setMessage(const char* message);
 private:
     MD_Parola hw;
     char* buffer;
