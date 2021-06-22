@@ -22,19 +22,23 @@ void DataFetcher::maybeFetchData(bool forceLoad) {
 
     Settings* settings = Settings::getInstance();
     messages[MSG_PERSONALIZED_MESSAGE] = settings->get()->message;
+    bool payoutEnabled = settings->get()->enablePayoutDisplay;
     bool btcEnabled = settings->get()->btc;
     bool ethEnabled = settings->get()->eth;
-    bool customEnabled = messages[MSG_PERSONALIZED_MESSAGE].length() > 0;
+    bool personalEnabled = settings->get()->enablePersonalMessageDisplay;
 
     // cycle messages
     currentMessage = currentMessage + 1;
+    if (currentMessage == MSG_FTT_PAYOUT && !payoutEnabled) {
+        currentMessage = currentMessage + 1;
+    }
     if (currentMessage == MSG_BTC_PRICE && !btcEnabled) {
         currentMessage = currentMessage + 1;
     }
     if (currentMessage == MSG_ETH_PRICE && !ethEnabled) {
         currentMessage = currentMessage + 1;
     }
-    if (currentMessage == MSG_PERSONALIZED_MESSAGE && !customEnabled) {
+    if (currentMessage == MSG_PERSONALIZED_MESSAGE && !personalEnabled) {
         currentMessage = currentMessage + 1;
     }
     if (currentMessage > MSG_LAST) {
@@ -66,7 +70,7 @@ void DataFetcher::maybeFetchData(bool forceLoad) {
         if (lastUpdatedMessage == MSG_ETH_PRICE && !ethEnabled) {
             lastUpdatedMessage = lastUpdatedMessage + 1;
         }
-        if (lastUpdatedMessage == MSG_PERSONALIZED_MESSAGE && !customEnabled) {
+        if (lastUpdatedMessage == MSG_PERSONALIZED_MESSAGE && !personalEnabled) {
             lastUpdatedMessage = lastUpdatedMessage + 1;
         }
         if (lastUpdatedMessage > MSG_LAST) {

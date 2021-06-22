@@ -60,6 +60,12 @@ void WebConfigurationPortal::setup() {
             if (std::string("fttTokens") == name) {
                 settings->get()->fttTokens = std::stoi(value);
                 
+            } else if (std::string("enablePayoutDisplay") == name) {
+                settings->get()->enablePayoutDisplay = std::string(value) == "true";
+                
+            } else if (std::string("enablePersonalMessageDisplay") == name) {
+                settings->get()->enablePersonalMessageDisplay = std::string(value) == "true";
+                
             } else if (std::string("btc") == name) {
                 settings->get()->btc = std::string(value) == "true";
 
@@ -118,28 +124,24 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
 const std::string HTML_FORM(FtxPayMeSettings* settings) {
     std::string ret = HTML(
         <form action="/reset" method="POST" id="reset"></form>
-        <script>
-            function resetDevice() {
-                if (!confirm("This will reset the device and lose all of your configuration, are you sure?")) {
-                    return;
-                }
-                document.getElementById("reset").submit();
-            }
-        </script>
         <form action="/save" method="POST">
             <p><strong>Fill out the form below to configure</strong></p>
             <p>
-                <label>How many FTT tokens are you awarded per month?</label><br>
-                <input type="number" name="fttTokens" value="{fttTokens}">
+                <input onchange="setPayoutDisplayEnabled(this.checked)" type="checkbox" id="enablePayoutDisplay" name="enablePayoutDisplay" value="true" {enablePayoutDisplay} /> <label for="enablePayoutDisplay">Enable payout display</label> <br />
+                <label for="fttTokens" id="fttTokens_label">How many FTT tokens are you awarded per month?<br>
+                <input type="number" id="fttTokens" name="fttTokens" value="{fttTokens}">
+                </label>
             </p>
             <p>
                 <label>Include additional coiints</label> <br />
-                <input type="checkbox" name="btc" value="true" {btc} /> BTC <br />
-                <input type="checkbox" name="eth" value="true" {eth}/ > ETH <br />
+                <input type="checkbox" id="btc" name="btc" value="true" {btc} /> <label for="btc">BTC</label> <br />
+                <input type="checkbox" id="eth" name="eth" value="true" {eth}/ > <label for="eth">ETH</label> <br />
             </p>
             <p>
-                <label>Personalized message</label><br />
+                <input onchange="setPersonalMessageEnabled(this.checked)" type="checkbox" id="enablePersonalMessageDisplay" name="enablePersonalMessageDisplay" value="true" {enablePersonalMessageDisplay} /> <label for="enablePersonalMessageDisplay">Enable personal message</label> <br />
+                <label for="message" id="message_label">Personalized message<br />
                 <input type="text" name="message" value="{msg}" maxlength="1024">
+                </label>
             </p>
             <p>
                 <label>Scroll speed</label><br>
@@ -151,10 +153,30 @@ const std::string HTML_FORM(FtxPayMeSettings* settings) {
             </p>
             <button type="submit">Save</button> <button onclick="resetDevice(); return false;">Reset</button>
         </form>
+        <script>
+            function resetDevice() {
+                if (!confirm("This will reset the device and lose all of your configuration, are you sure?")) {
+                    return;
+                }
+                document.getElementById("reset").submit();
+            }
+            function setPayoutDisplayEnabled(enabled) {
+                document.getElementById("fttTokens_label").style.display = enabled ? "block" : "none";
+                document.getElementById("fttTokens").style.display = enabled ? "block" : "none";
+            }
+            setPayoutDisplayEnabled("{enablePayoutDisplay}" == "checked");
+            function setPersonalMessageEnabled(enabled) {
+                document.getElementById("message_label").style.display = enabled ? "block" : "none";
+                document.getElementById("message").style.display = enabled ? "block" : "none";
+            }
+            setPersonalMessageEnabled("{enablePersonalMessageDisplay}" == "checked");
+        </script>
     );
     replaceAll(ret, "{fttTokens}", std::to_string(settings->fttTokens));
+    replaceAll(ret, "{enablePayoutDisplay}", settings->enablePayoutDisplay ? "checked" : "");
     replaceAll(ret, "{btc}", settings->btc ? "checked" : "");
     replaceAll(ret, "{eth}", settings->eth ? "checked" : "");
+    replaceAll(ret, "{enablePersonalMessageDisplay}", settings->enablePersonalMessageDisplay ? "checked" : "");
     replaceAll(ret, "{msg}", std::string(settings->message));
     replaceAll(ret, "{scrollSpeed}", std::to_string(settings->scrollSpeed));
     replaceAll(ret, "{dataUpdateFrequencySeconds}", std::to_string(settings->dataUpdateFrequencySeconds));

@@ -4,15 +4,20 @@
 
 #include <EEPROM.h>
 
+#define DEFAULT_MESSAGE "(___)__)===jjjj===D ~  ~   ~"
+#define CURRENT_SETTINGS_VERSION '2'
+
 struct FtxPayMeSettings {
-    char valid;
+    char version;
     int fttTokens;
+    bool enablePayoutDisplay;
     bool btc;
     bool eth;
     int scrollSpeed;
+    unsigned int dataUpdateFrequencySeconds;
+    bool enablePersonalMessageDisplay;
     char message[128];
     bool configured;
-    unsigned int dataUpdateFrequencySeconds;
 };
 
 class Settings {

@@ -1,16 +1,10 @@
 
 #include "Settings.h"
 
-const char* DEFAULT_MESSAGE = "(___)__)===jjjj===D ~  ~   ~";
-
 Settings* Settings::instance = nullptr;
 
 Settings::Settings() {
     load();
-    if (settings.valid != 'v') {
-        loadDefaults();
-        save();
-    }
 }
 
 Settings* Settings::getInstance() {
@@ -24,6 +18,10 @@ bool Settings::load() {
     EEPROM.begin(sizeof(FtxPayMeSettings));
     if (EEPROM.length() >= 0) {
         EEPROM.get(0, settings);
+        if (settings.version != CURRENT_SETTINGS_VERSION) {
+            loadDefaults();
+            save();
+        }
         return true;
     } else {
         return false;
@@ -31,15 +29,16 @@ bool Settings::load() {
 }
 
 void Settings::loadDefaults() {
-    settings.valid = 'v';
+    settings.version = CURRENT_SETTINGS_VERSION;
     settings.fttTokens = 0;
+    settings.enablePayoutDisplay = false;
+    settings.enablePersonalMessageDisplay = false;
     settings.btc = true;
     settings.eth = true;
     settings.scrollSpeed = 40;
-    settings.configured = false;
-    settings.valid = 'v';
     settings.dataUpdateFrequencySeconds = 10;
     strcpy(settings.message, DEFAULT_MESSAGE);
+    settings.configured = false;
 }
 
 void Settings::save() {
