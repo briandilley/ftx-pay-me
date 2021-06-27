@@ -1,6 +1,7 @@
 
+#include <WiFiManager.h>
+
 #include "Settings.h"
-#include "WiFiController.h"
 #include "WebConfigurationPortal.h"
 #include "Banner.h"
 #include "DataFetcher.h"
@@ -12,18 +13,36 @@
 /* ------------------------------------------------- */
 
 Settings* settings = Settings::getInstance();
-WiFiController wifiController(AP_NAME, AP_PASSWORD, PORTAL_TIMEOUT);
 WebConfigurationPortal webConfigurationPortal;
-Banner banner(MD_MAX72XX::FC16_HW, D8, 4, 1024, 50);
+Banner banner(MD_MAX72XX::FC16_HW, 15, 4, 1024, 50);
 DataFetcher dataFetcher;
 
 void setup() {
-  wifiController.setup();
+  Serial.begin(115200);
+  while (!Serial) { }
+  delay(3000);
+
   banner.setup();
   banner.setMessage("FTX PAY ME");
+
+  /*
+  ESP.eraseConfig();
+  delay(2000);
+  ESP.reset();
+  delay(2000);
+  */
+
+  WiFiManager wifiManager;
+  wifiManager.setDebugOutput(true);
+  if (!wifiManager.autoConnect(AP_NAME, AP_PASSWORD)) {
+    Serial.println("failed to connect and hit timeout");
+    ESP.reset();
+    delay(1000);
+    return;
+  }
+
   dataFetcher.setup();
-  Serial.begin(115200);
-  delay(1000);
+  Serial.println("setup complete");
 }
 
 void loop() {
@@ -31,9 +50,9 @@ void loop() {
   bool doneAnimating = banner.loop();
 
   // wifi not setup yet
-  if (!wifiController.isConnected()) {
+  if (WiFi.status() != WL_CONNECTED) {
     if (doneAnimating) {
-      banner.setMessage((std::string("Connect to SSID ") + AP_NAME + " and configure wireless connection").c_str());
+      banner.setMessage("Wireless connection is unavailable");
     }
     return;
   }
@@ -47,9 +66,8 @@ void loop() {
   // if we haven't ever been configured, prompt for that now
   if (!settings->get()->configured) {
     if (doneAnimating) {
-      IPAddress addr = wifiController.getIPAddress();
-      String message = String("go to http://") + addr.toString() + " and configure me";
-      banner.setMessage(message.c_str());
+      IPAddress addr = WiFi.localIP();
+      banner.setMessage((String("go to http://") + addr.toString() + " and configure me").c_str());
     }
     return;
   }

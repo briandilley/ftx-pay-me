@@ -12,7 +12,7 @@ public:
     Banner(MD_MAX72XX::moduleType_t hardwareType, int csPin, int maxDevices, int bufferSize, int scrollSpeed);
 
     void setup();
-    bool loop();
+    bool loop(bool reset = false);
 
     void setScrollSpeed(int speed);
     void setMessage(const char* message);

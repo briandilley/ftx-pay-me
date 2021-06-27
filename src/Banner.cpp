@@ -20,12 +20,13 @@ void Banner::setup() {
 }
 
 void Banner::setMessage(const char* message) {
+    Serial.printf("new message: %s\n", message);
     memcpy(pendingBuffer, message, min((int)strlen(message), bufferSize));
 }
 
-bool Banner::loop() {
+bool Banner::loop(bool reset) {
     bool ret = hw.displayAnimate();
-    if (ret) {
+    if (ret || reset) {
         if (strlen(pendingBuffer) > 0) {
             memcpy(buffer, pendingBuffer, bufferSize);
             memset(pendingBuffer, 0, bufferSize);
