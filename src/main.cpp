@@ -5,6 +5,7 @@
 #include "WebConfigurationPortal.h"
 #include "Banner.h"
 #include "DataFetcher.h"
+#include "ESPBattery.h";
 
 /* ------------------------------------------------- */
 #define PORTAL_TIMEOUT  10 * 60 // seconds
@@ -13,9 +14,11 @@
 /* ------------------------------------------------- */
 
 Settings* settings = Settings::getInstance();
+ESPBattery battery;
 WebConfigurationPortal webConfigurationPortal;
 Banner banner(MD_MAX72XX::FC16_HW, 15, 4, 1024, 50);
 DataFetcher dataFetcher;
+unsigned long lastBatteryCheck = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -47,7 +50,35 @@ void setup() {
 
 void loop() {
 
+  unsigned long now = millis();
   bool doneAnimating = banner.loop();
+
+  // check battery
+  battery.loop();
+  if (doneAnimating && (now - lastBatteryCheck) > 60000) {
+    lastBatteryCheck = now;
+    int state = battery.getState();
+    switch (state) {
+      case ESPBATTERY_FULL:
+        banner.setMessage("Battery is full");
+        break;
+      case ESPBATTERY_CHARGING:
+        banner.setMessage("Battery is charging");
+        break;
+      case ESPBATTERY_LOW:
+        banner.setMessage("Battery is getting low");
+        break;
+      case ESPBATTERY_CRITICAL:
+        banner.setMessage("Battery is critically low");
+        break;
+      case ESPBATTERY_OK:
+        // pass
+        break;
+    }
+    if (state != ESPBATTERY_OK) {
+         return;
+    }
+  }
 
   // wifi not setup yet
   if (WiFi.status() != WL_CONNECTED) {
