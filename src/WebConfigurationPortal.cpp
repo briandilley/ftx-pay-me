@@ -39,9 +39,12 @@ void WebConfigurationPortal::setup() {
         settings->clear();
         settings->loadDefaults();
         settings->save();
+
         WiFi.disconnect(true);
+        ESP.eraseConfig();
+        delay(2000);
         ESP.reset();
-        delay(500);
+        delay(2000);
     });
 
     app.post("/save", [] (Request &request, Response &response) {

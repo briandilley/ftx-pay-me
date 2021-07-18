@@ -5,12 +5,14 @@
 #include "WebConfigurationPortal.h"
 #include "Banner.h"
 #include "DataFetcher.h"
-#include "ESPBattery.h";
+#include "ESPBattery.h"
 
 /* ------------------------------------------------- */
 #define PORTAL_TIMEOUT  10 * 60 // seconds
 #define AP_NAME         "FTX PAY ME"
 #define AP_PASSWORD     ""
+#define HOSTNAME        "ftxpayme"
+#define BATTERY_ENABLED false
 /* ------------------------------------------------- */
 
 Settings* settings = Settings::getInstance();
@@ -18,6 +20,7 @@ ESPBattery battery;
 WebConfigurationPortal webConfigurationPortal;
 Banner banner(MD_MAX72XX::FC16_HW, 15, 4, 1024, 50);
 DataFetcher dataFetcher;
+WiFiManager wifiManager;
 unsigned long lastBatteryCheck = 0;
 
 void setup() {
@@ -35,17 +38,16 @@ void setup() {
   delay(2000);
   */
 
-  WiFiManager wifiManager;
+  wifiManager.setHostname(HOSTNAME);
+  wifiManager.setConfigPortalBlocking(false);
   wifiManager.setDebugOutput(true);
-  if (!wifiManager.autoConnect(AP_NAME, AP_PASSWORD)) {
-    Serial.println("failed to connect and hit timeout");
+  wifiManager.autoConnect(AP_NAME, AP_PASSWORD);
+  wifiManager.setSaveConfigCallback([]() {
     ESP.reset();
-    delay(1000);
-    return;
-  }
+    delay(2000);
+  });
 
   dataFetcher.setup();
-  Serial.println("setup complete");
 }
 
 void loop() {
@@ -55,7 +57,7 @@ void loop() {
 
   // check battery
   battery.loop();
-  if (doneAnimating && (now - lastBatteryCheck) > 60000) {
+  if (BATTERY_ENABLED && doneAnimating && (now - lastBatteryCheck) > 60000) {
     lastBatteryCheck = now;
     int state = battery.getState();
     switch (state) {
@@ -80,10 +82,10 @@ void loop() {
     }
   }
 
-  // wifi not setup yet
-  if (WiFi.status() != WL_CONNECTED) {
+  // wifi manager stuff
+  if (WiFi.status() != WL_CONNECTED && !wifiManager.process()) {
     if (doneAnimating) {
-      banner.setMessage("Wireless connection is unavailable");
+      banner.setMessage("Connect to \"" AP_NAME "\" wireless network to configure me");
     }
     return;
   }
@@ -111,5 +113,4 @@ void loop() {
     dataFetcher.maybeFetchData(false);
     banner.setMessage(dataFetcher.getMessage());
   }
-
 }
